@@ -6,6 +6,14 @@ TagManager:
   tags:
   - Anchor
   - Ball
+  - stone
+  - pyramid
+  - block
+  - goal
+  - wall
+  - agent
+  - switchOff
+  - switchOn
   layers:
   - Default
   - TransparentFX
