@@ -1,5 +1,12 @@
 fileFormatVersion: 2
 guid: 8b45c309ff3464b4cb0c1ac2b30b1284
+AssetOrigin:
+  serializedVersion: 1
+  productId: 367458
+  packageName: German Dog
+  packageVersion: 1.0
+  assetPath: Assets/RSG_DogsPack/HDRP/Animations/A_Idle_Breathing.fbx
+  uploadId: 883092
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
@@ -29,7 +36,36 @@ ModelImporter:
     animationWrapMode: 0
     extraExposedTransformPaths: []
     extraUserProperties: []
-    clipAnimations: []
+    clipAnimations:
+    - serializedVersion: 16
+      name: 1 type_Idle Breathing
+      takeName: 1 type_Idle Breathing
+      internalID: 4123543702230365045
+      firstFrame: 0
+      lastFrame: 30
+      wrapMode: 0
+      orientationOffsetY: 0
+      level: 0
+      cycleOffset: 0
+      loop: 0
+      hasAdditiveReferencePose: 0
+      loopTime: 1
+      loopBlend: 0
+      loopBlendOrientation: 0
+      loopBlendPositionY: 0
+      loopBlendPositionXZ: 0
+      keepOriginalOrientation: 0
+      keepOriginalPositionY: 1
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 0
+      mirror: 0
+      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+      curves: []
+      events: []
+      transformMask: []
+      maskType: 3
+      maskSource: {instanceID: 0}
+      additiveReferencePoseFrame: 0
     isReadable: 0
   meshes:
     lODScreenPercentages: []
@@ -108,10 +144,3 @@ ModelImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 367458
-  packageName: German Dog
-  packageVersion: 1.0
-  assetPath: Assets/RSG_DogsPack/HDRP/Animations/A_Idle_Breathing.fbx
-  uploadId: 883092
