@@ -5,7 +5,11 @@ TagManager:
   serializedVersion: 3
   tags:
   - Anchor
-  - Ball
+  - block
+  - goal
+  - wall
+  - agent
+  - ball
   layers:
   - Default
   - TransparentFX
