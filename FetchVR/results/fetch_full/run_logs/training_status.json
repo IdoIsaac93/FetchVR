@@ -2,24 +2,6 @@
     "FetchPet": {
         "checkpoints": [
             {
-                "steps": 49872,
-                "file_path": "results\\fetch_full\\FetchPet\\FetchPet-49872.onnx",
-                "reward": -0.8486540689547029,
-                "creation_time": 1775844414.0461714,
-                "auxillary_file_paths": [
-                    "results\\fetch_full\\FetchPet\\FetchPet-49872.pt"
-                ]
-            },
-            {
-                "steps": 99888,
-                "file_path": "results\\fetch_full\\FetchPet\\FetchPet-99888.onnx",
-                "reward": 0.654983088788059,
-                "creation_time": 1775844474.9300075,
-                "auxillary_file_paths": [
-                    "results\\fetch_full\\FetchPet\\FetchPet-99888.pt"
-                ]
-            },
-            {
                 "steps": 149983,
                 "file_path": "results\\fetch_full\\FetchPet\\FetchPet-149983.onnx",
                 "reward": 0.9779601171030663,
@@ -144,15 +126,69 @@
                 "auxillary_file_paths": [
                     "results\\fetch_full\\FetchPet\\FetchPet-776350.pt"
                 ]
+            },
+            {
+                "steps": 799943,
+                "file_path": "results\\fetch_full\\FetchPet\\FetchPet-799943.onnx",
+                "reward": 3.08109005053456,
+                "creation_time": 1775853005.3253224,
+                "auxillary_file_paths": [
+                    "results\\fetch_full\\FetchPet\\FetchPet-799943.pt"
+                ]
+            },
+            {
+                "steps": 849911,
+                "file_path": "results\\fetch_full\\FetchPet\\FetchPet-849911.onnx",
+                "reward": 3.4496956756338477,
+                "creation_time": 1775853078.0406759,
+                "auxillary_file_paths": [
+                    "results\\fetch_full\\FetchPet\\FetchPet-849911.pt"
+                ]
+            },
+            {
+                "steps": 899956,
+                "file_path": "results\\fetch_full\\FetchPet\\FetchPet-899956.onnx",
+                "reward": null,
+                "creation_time": 1775853146.772253,
+                "auxillary_file_paths": [
+                    "results\\fetch_full\\FetchPet\\FetchPet-899956.pt"
+                ]
+            },
+            {
+                "steps": 949926,
+                "file_path": "results\\fetch_full\\FetchPet\\FetchPet-949926.onnx",
+                "reward": 3.5094951575367968,
+                "creation_time": 1775853213.9629025,
+                "auxillary_file_paths": [
+                    "results\\fetch_full\\FetchPet\\FetchPet-949926.pt"
+                ]
+            },
+            {
+                "steps": 999888,
+                "file_path": "results\\fetch_full\\FetchPet\\FetchPet-999888.onnx",
+                "reward": 3.5115773912053556,
+                "creation_time": 1775853283.987206,
+                "auxillary_file_paths": [
+                    "results\\fetch_full\\FetchPet\\FetchPet-999888.pt"
+                ]
+            },
+            {
+                "steps": 1000016,
+                "file_path": "results\\fetch_full\\FetchPet\\FetchPet-1000016.onnx",
+                "reward": 3.5115773912053556,
+                "creation_time": 1775853284.0350814,
+                "auxillary_file_paths": [
+                    "results\\fetch_full\\FetchPet\\FetchPet-1000016.pt"
+                ]
             }
         ],
         "final_checkpoint": {
-            "steps": 776350,
+            "steps": 1000016,
             "file_path": "results\\fetch_full\\FetchPet.onnx",
-            "reward": 3.5443246806430264,
-            "creation_time": 1775845423.6079926,
+            "reward": 3.5115773912053556,
+            "creation_time": 1775853284.0350814,
             "auxillary_file_paths": [
-                "results\\fetch_full\\FetchPet\\FetchPet-776350.pt"
+                "results\\fetch_full\\FetchPet\\FetchPet-1000016.pt"
             ]
         }
     },
