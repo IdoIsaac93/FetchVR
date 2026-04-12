@@ -1,34 +1,31 @@
 using System;
+using System.Linq;
 using UnityEngine;
 using Random = UnityEngine.Random;
 using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
 using Unity.MLAgents.Sensors;
-using FetchVR.Dog;
 
 public class FetchAgent : Agent
 {
-    public enum FetchPhase { Idle, SearchingBall, ReturningGoal }
-
     [Header("References")]
     public GameObject area;
     public GameObject areaBall;
     public bool useVectorObs;
-    public DogStatusController dogStatus;
 
     [Header("Gameplay Settings")]
     [Tooltip("Minimum distance agent must travel from goal before 'empty return' penalty kicks in")]
     public float minFetchDistance = 3f;
-    [Tooltip("Keep the dog idle until the player releases the ball.")]
-    public bool waitForBallThrow = true;
 
     FetchArea m_MyArea;
     Rigidbody m_AgentRb;
     FetchBall m_MyBall;
     GameObject m_Goal;
+
+    // Phase state
+    public enum FetchPhase { SearchingBall, ReturningGoal }
     [HideInInspector] public FetchPhase currentPhase;
     [HideInInspector] public bool hasBall;
-    [HideInInspector] public bool fetchActive;
 
     // Track whether agent has ventured far enough from goal
     bool m_HasLeftGoalArea;
@@ -45,9 +42,6 @@ public class FetchAgent : Agent
 
     // For distance normalization
     float m_MaxDistance = 30f;
-    int m_DefaultMaxStep;
-    Vector3 m_StartingPosition;
-    Quaternion m_StartingRotation;
 
     public override void Initialize()
     {
@@ -55,14 +49,6 @@ public class FetchAgent : Agent
         m_MyArea = area.GetComponent<FetchArea>();
         m_MyBall = areaBall.GetComponent<FetchBall>();
         m_Goal = m_MyArea.goal;
-        m_DefaultMaxStep = MaxStep;
-        m_StartingPosition = transform.position;
-        m_StartingRotation = transform.rotation;
-
-        if (dogStatus == null)
-        {
-            dogStatus = GetComponent<DogStatusController>();
-        }
     }
 
     public override void CollectObservations(VectorSensor sensor)
@@ -116,17 +102,6 @@ public class FetchAgent : Agent
 
     public override void OnActionReceived(ActionBuffers actionBuffers)
     {
-        if (!fetchActive)
-        {
-            if (m_AgentRb != null)
-            {
-                m_AgentRb.linearVelocity = Vector3.zero;
-                m_AgentRb.angularVelocity = Vector3.zero;
-            }
-
-            return;
-        }
-
         // Step penalty
         AddReward(-1f / MaxStep);
 
@@ -198,35 +173,22 @@ public class FetchAgent : Agent
     {
         // Reset phase state
         hasBall = false;
-        fetchActive = !waitForBallThrow;
-        currentPhase = fetchActive ? FetchPhase.SearchingBall : FetchPhase.Idle;
+        currentPhase = FetchPhase.SearchingBall;
         m_HasLeftGoalArea = false;
         m_StuckTimer = 0f;
-        MaxStep = fetchActive ? m_DefaultMaxStep : 0;
 
+        // 1. Place goal (player) at fixed position (center or designated slot)
+        m_MyArea.PlaceGoalFixed();
+
+        // 2. Place agent near goal (dog starts near player)
         m_AgentRb.linearVelocity = Vector3.zero;
         m_AgentRb.angularVelocity = Vector3.zero;
+        m_MyArea.PlaceAgentNearGoal(gameObject);
+        transform.rotation = Quaternion.Euler(0f, Random.Range(0, 360), 0f);
 
-        if (fetchActive)
-        {
-            // 1. Place goal (player) at fixed position (center or designated slot)
-            m_MyArea.PlaceGoalFixed();
-
-            // 2. Place agent near goal (dog starts near player)
-            m_MyArea.PlaceAgentNearGoal(gameObject);
-            transform.rotation = Quaternion.Euler(0f, Random.Range(0, 360), 0f);
-
-            // 3. Place ball at a random spawn zone far from goal
-            int ballSlot = PickBallSlot();
-            m_MyBall.ResetBall(ballSlot);
-        }
-        else
-        {
-            // Keep authored scene placement while idle so the dog and ball remain where you positioned them.
-            transform.position = m_StartingPosition;
-            transform.rotation = m_StartingRotation;
-            m_MyBall.ResetToStartingPose();
-        }
+        // 3. Place ball at a random spawn zone far from goal
+        int ballSlot = PickBallSlot();
+        m_MyBall.ResetBall(ballSlot);
 
         // Initialize distance tracking
         m_PrevDistToBall = Vector3.Distance(transform.position, areaBall.transform.position);
@@ -262,11 +224,6 @@ public class FetchAgent : Agent
     /// </summary>
     public void OnBallCollected()
     {
-        if (!fetchActive || hasBall)
-        {
-            return;
-        }
-
         hasBall = true;
         currentPhase = FetchPhase.ReturningGoal;
         AddReward(1.0f);
@@ -274,37 +231,14 @@ public class FetchAgent : Agent
         m_PrevDistToGoal = Vector3.Distance(transform.position, m_Goal.transform.position);
     }
 
-    public void BeginFetch()
-    {
-        if (hasBall || fetchActive)
-        {
-            return;
-        }
-
-        fetchActive = true;
-        currentPhase = FetchPhase.SearchingBall;
-        m_HasLeftGoalArea = false;
-        m_StuckTimer = 0f;
-        MaxStep = m_DefaultMaxStep;
-        m_PrevDistToBall = Vector3.Distance(transform.position, areaBall.transform.position);
-        m_PrevDistToGoal = Vector3.Distance(transform.position, m_Goal.transform.position);
-        m_PrevPosition = transform.position;
-    }
-
     void OnCollisionEnter(Collision collision)
     {
-        if (!fetchActive)
-        {
-            return;
-        }
-
         if (collision.gameObject.CompareTag("goal"))
         {
             if (hasBall)
             {
                 // Success: fetched ball and returned to player
-                dogStatus?.AddTraining();
-                AddReward(2f);
+                SetReward(2f);
                 EndEpisode();
             }
             else if (m_HasLeftGoalArea)
