@@ -4,6 +4,8 @@ using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 public class FetchBall : MonoBehaviour
 {
+    static readonly Vector3 k_CarryLocalOffset = Vector3.forward * 0.5f + Vector3.up * 0.3f;
+
     [SerializeField] FetchArea areaOverride;
     [SerializeField] FetchAgent fetchAgentOverride;
 
@@ -182,7 +184,8 @@ public class FetchBall : MonoBehaviour
             // Parent to agent and position at its "mouth"
             Transform agentTransform = other.transform;
             transform.SetParent(agentTransform);
-            transform.localPosition = agentTransform.forward * 0.5f + Vector3.up * 0.3f;
+            transform.localPosition = k_CarryLocalOffset;
+            transform.localRotation = Quaternion.identity;
 
             // Notify agent
             if (agent != null)

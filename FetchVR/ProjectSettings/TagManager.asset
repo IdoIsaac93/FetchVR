@@ -5,15 +5,11 @@ TagManager:
   serializedVersion: 3
   tags:
   - Anchor
-  - Ball
-  - stone
-  - pyramid
   - block
   - goal
   - wall
   - agent
-  - switchOff
-  - switchOn
+  - ball
   layers:
   - Default
   - TransparentFX

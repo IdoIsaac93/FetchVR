@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using UnityEngine;
 using Random = UnityEngine.Random;
 using Unity.MLAgents;
@@ -263,6 +262,11 @@ public class FetchAgent : Agent
     /// </summary>
     public void OnBallCollected()
     {
+        if (!fetchActive || hasBall)
+        {
+            return;
+        }
+
         hasBall = true;
         currentPhase = FetchPhase.ReturningGoal;
         AddReward(1.0f);
@@ -300,7 +304,7 @@ public class FetchAgent : Agent
             {
                 // Success: fetched ball and returned to player
                 dogStatus?.AddTraining();
-                SetReward(2f);
+                AddReward(2f);
                 EndEpisode();
             }
             else if (m_HasLeftGoalArea)
