@@ -1,10 +1,9 @@
 using System;
-using System.Linq;
-using UnityEngine;
-using Random = UnityEngine.Random;
 using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
 using Unity.MLAgents.Sensors;
+using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class FetchAgent : Agent
 {
@@ -17,120 +16,238 @@ public class FetchAgent : Agent
     [Tooltip("Minimum distance agent must travel from goal before 'empty return' penalty kicks in")]
     public float minFetchDistance = 3f;
 
+    [Tooltip("(Game mode) Distance to goal at which the dog counts as 'returned to player'")]
+    public float goalReachDistance = 1.5f;
+
+    [Tooltip("(Game mode) Distance to ball at which the dog picks it up")]
+    public float ballPickupDistance = 1.0f;
+
+    [Header("Training Rewards")]
+    public float approachRewardScale = 0.006f;
+    public float enterTargetAreaReward = 0.05f;
+    public float wallCollisionPenalty = -0.02f;
+    public float ballCollectedReward = 0.25f;
+    public float fetchCompleteReward = 4.0f;
+    public float failedEpisodePenalty = -0.5f;
+    public bool faceBallAtEpisodeStart = true;
+
     FetchArea m_MyArea;
     Rigidbody m_AgentRb;
     FetchBall m_MyBall;
     GameObject m_Goal;
 
-    // Phase state
     public enum FetchPhase { SearchingBall, ReturningGoal }
-    [HideInInspector] public FetchPhase currentPhase;
-    [HideInInspector] public bool hasBall;
+    public FetchPhase currentPhase;
+    public bool hasBall;
+    public bool isFetching;
 
-    // Track whether agent has ventured far enough from goal
     bool m_HasLeftGoalArea;
-
-    // Distance tracking for shaping reward
     float m_PrevDistToBall;
     float m_PrevDistToGoal;
-
-    // Stuck detection
     Vector3 m_PrevPosition;
     float m_StuckTimer;
+    float m_MaxDistance = 30f;
+
+    int m_BallSpawnAreaIndex = -1;
+    int m_GoalSpawnAreaIndex = -1;
+    bool m_EnteredBallArea;
+    bool m_EnteredGoalArea;
+    bool m_EpisodeSucceeded;
+
     const float k_StuckThreshold = 0.1f;
     const float k_StuckTimeLimit = 2.0f;
 
-    // For distance normalization
-    float m_MaxDistance = 30f;
+    bool IsGameMode => m_MyArea != null && m_MyArea.isGameMode;
+
+    public event Action OnFetchSuccess;
+    public event Action<bool> OnTrainingEpisodeFinished;
+
+    void EnsureInitialized()
+    {
+        if (m_AgentRb == null)
+        {
+            m_AgentRb = GetComponent<Rigidbody>();
+        }
+
+        if (m_MyArea == null && area != null)
+        {
+            m_MyArea = area.GetComponent<FetchArea>();
+        }
+
+        if (m_MyBall == null && areaBall != null)
+        {
+            m_MyBall = areaBall.GetComponent<FetchBall>();
+        }
+
+        if (m_Goal == null && m_MyArea != null)
+        {
+            m_Goal = m_MyArea.goal;
+        }
+    }
 
     public override void Initialize()
     {
-        m_AgentRb = GetComponent<Rigidbody>();
-        m_MyArea = area.GetComponent<FetchArea>();
-        m_MyBall = areaBall.GetComponent<FetchBall>();
-        m_Goal = m_MyArea.goal;
+        EnsureInitialized();
+
+        if (m_MyArea == null)
+        {
+            Debug.LogError("FetchAgent is missing a valid FetchArea reference.");
+            return;
+        }
+
+        float diag = m_MyArea.GetMapDiagonal();
+        if (diag > 1f)
+        {
+            m_MaxDistance = diag;
+        }
+
+        if (IsGameMode)
+        {
+            MaxStep = 0;
+        }
     }
 
     public override void CollectObservations(VectorSensor sensor)
     {
-        if (useVectorObs)
+        EnsureInitialized();
+
+        if (!useVectorObs)
         {
-            // 1. Phase state (1 obs)
-            sensor.AddObservation(hasBall);
-
-            // 2. Agent local velocity (3 obs)
-            sensor.AddObservation(transform.InverseTransformDirection(m_AgentRb.linearVelocity));
-
-            // 3. Ball relative direction + distance (4 obs)
-            Vector3 toBall = areaBall.transform.position - transform.position;
-            sensor.AddObservation(transform.InverseTransformDirection(toBall.normalized));
-            sensor.AddObservation(toBall.magnitude / m_MaxDistance);
-
-            // 4. Goal (player) relative direction + distance (4 obs)
-            Vector3 toGoal = m_Goal.transform.position - transform.position;
-            sensor.AddObservation(transform.InverseTransformDirection(toGoal.normalized));
-            sensor.AddObservation(toGoal.magnitude / m_MaxDistance);
-
-            // Total: 1 + 3 + 4 + 4 = 12
+            return;
         }
+
+        sensor.AddObservation(hasBall);
+        sensor.AddObservation(transform.InverseTransformDirection(m_AgentRb.linearVelocity));
+
+        Vector3 toBall = areaBall.transform.position - transform.position;
+        sensor.AddObservation(transform.InverseTransformDirection(toBall.normalized));
+        sensor.AddObservation(toBall.magnitude / m_MaxDistance);
+
+        Vector3 toGoal = m_Goal.transform.position - transform.position;
+        sensor.AddObservation(transform.InverseTransformDirection(toGoal.normalized));
+        sensor.AddObservation(toGoal.magnitude / m_MaxDistance);
     }
 
     public void MoveAgent(ActionSegment<int> act)
     {
-        var dirToGo = Vector3.zero;
-        var rotateDir = Vector3.zero;
+        Vector3 dirToGo = Vector3.zero;
+        Vector3 rotateDir = Vector3.zero;
 
-        var action = act[0];
+        int action = act[0];
         switch (action)
         {
             case 1:
-                dirToGo = transform.forward * 1f;
+                dirToGo = transform.forward;
                 break;
             case 2:
-                dirToGo = transform.forward * -1f;
+                dirToGo = -transform.forward;
                 break;
             case 3:
-                rotateDir = transform.up * 1f;
+                rotateDir = transform.up;
                 break;
             case 4:
-                rotateDir = transform.up * -1f;
+                rotateDir = -transform.up;
                 break;
         }
+
         transform.Rotate(rotateDir, Time.deltaTime * 200f);
         m_AgentRb.AddForce(dirToGo * 2f, ForceMode.VelocityChange);
+
+        if (m_AgentRb.linearVelocity.magnitude > 5f)
+        {
+            m_AgentRb.linearVelocity = m_AgentRb.linearVelocity.normalized * 5f;
+        }
     }
 
     public override void OnActionReceived(ActionBuffers actionBuffers)
     {
-        // Step penalty
-        AddReward(-1f / MaxStep);
+        if (IsGameMode)
+        {
+            if (isFetching)
+            {
+                MoveAgent(actionBuffers.DiscreteActions);
 
+                if (!hasBall)
+                {
+                    float distToBall = Vector3.Distance(transform.position, areaBall.transform.position);
+                    if (distToBall <= ballPickupDistance)
+                    {
+                        m_MyBall.AttachToAgent(transform);
+                        OnBallCollected();
+                    }
+                }
+                else
+                {
+                    float distToPlayer = Vector3.Distance(transform.position, m_Goal.transform.position);
+                    if (distToPlayer <= goalReachDistance)
+                    {
+                        CompleteGameFetch();
+                    }
+                }
+            }
+            return;
+        }
+
+        AddReward(-1f / MaxStep);
         MoveAgent(actionBuffers.DiscreteActions);
 
         float distToGoal = Vector3.Distance(transform.position, m_Goal.transform.position);
-
-        // Check if agent has traveled far enough from goal
         if (!m_HasLeftGoalArea && distToGoal > minFetchDistance)
         {
             m_HasLeftGoalArea = true;
         }
 
-        // Shaping reward based on current phase
         if (currentPhase == FetchPhase.SearchingBall)
         {
             float distToBall = Vector3.Distance(transform.position, areaBall.transform.position);
+
+            if (!hasBall && distToBall <= ballPickupDistance)
+            {
+                m_MyBall.AttachToAgent(transform);
+                OnBallCollected();
+                distToBall = 0f;
+            }
+
             float delta = m_PrevDistToBall - distToBall;
-            AddReward(delta * 0.02f);
+            if (delta > 0f)
+            {
+                AddReward(delta * approachRewardScale);
+            }
             m_PrevDistToBall = distToBall;
+
+            int currentArea = m_MyArea.GetNearestSpawnAreaIndex(transform.position);
+            if (!m_EnteredBallArea && currentArea >= 0 && currentArea == m_BallSpawnAreaIndex)
+            {
+                AddReward(enterTargetAreaReward);
+                m_EnteredBallArea = true;
+            }
         }
         else if (currentPhase == FetchPhase.ReturningGoal)
         {
             float delta = m_PrevDistToGoal - distToGoal;
-            AddReward(delta * 0.02f);
+            if (delta > 0f)
+            {
+                AddReward(delta * approachRewardScale);
+            }
             m_PrevDistToGoal = distToGoal;
+
+            int currentArea = m_MyArea.GetNearestSpawnAreaIndex(transform.position);
+            if (!m_EnteredGoalArea && currentArea >= 0 && currentArea == m_GoalSpawnAreaIndex)
+            {
+                AddReward(enterTargetAreaReward);
+                m_EnteredGoalArea = true;
+            }
+
+            if (hasBall && distToGoal <= goalReachDistance)
+            {
+                m_EpisodeSucceeded = true;
+                OnTrainingEpisodeFinished?.Invoke(true);
+                SetReward(fetchCompleteReward);
+                EndEpisode();
+                return;
+            }
         }
 
-        // Stuck detection
         float moved = Vector3.Distance(transform.position, m_PrevPosition);
         if (moved < k_StuckThreshold * Time.fixedDeltaTime)
         {
@@ -145,6 +262,7 @@ public class FetchAgent : Agent
         {
             m_StuckTimer = 0f;
         }
+
         m_PrevPosition = transform.position;
     }
 
@@ -171,42 +289,162 @@ public class FetchAgent : Agent
 
     public override void OnEpisodeBegin()
     {
-        // Reset phase state
+        if (!IsGameMode && StepCount > 0 && !m_EpisodeSucceeded)
+        {
+            OnTrainingEpisodeFinished?.Invoke(false);
+            AddReward(failedEpisodePenalty);
+        }
+
         hasBall = false;
         currentPhase = FetchPhase.SearchingBall;
         m_HasLeftGoalArea = false;
         m_StuckTimer = 0f;
+        m_EnteredBallArea = false;
+        m_EnteredGoalArea = false;
+        m_EpisodeSucceeded = false;
 
-        // 1. Place goal (player) at fixed position (center or designated slot)
-        m_MyArea.PlaceGoalFixed();
+        if (IsGameMode)
+        {
+            m_PrevDistToBall = Vector3.Distance(transform.position, areaBall.transform.position);
+            m_PrevDistToGoal = Vector3.Distance(transform.position, m_Goal.transform.position);
+            m_PrevPosition = transform.position;
+            return;
+        }
 
-        // 2. Place agent near goal (dog starts near player)
         m_AgentRb.linearVelocity = Vector3.zero;
         m_AgentRb.angularVelocity = Vector3.zero;
-        m_MyArea.PlaceAgentNearGoal(gameObject);
-        transform.rotation = Quaternion.Euler(0f, Random.Range(0, 360), 0f);
 
-        // 3. Place ball at a random spawn zone far from goal
-        int ballSlot = PickBallSlot();
-        m_MyBall.ResetBall(ballSlot);
+        if (m_MyArea.randomizePositions)
+        {
+            m_Goal.transform.position = m_MyArea.GetRandomPositionFromAllowedAreas(
+                m_MyArea.goalSpawnY,
+                m_MyArea.goalSpawnClearance,
+                m_MyArea.allowedGoalSpawnAreaIndices);
+            m_Goal.SetActive(true);
+            m_GoalSpawnAreaIndex = m_MyArea.GetNearestSpawnAreaIndex(m_Goal.transform.position);
 
-        // Initialize distance tracking
+            Vector3 ballPos = m_MyArea.GetRandomPositionAwayFromAllowedAreas(
+                m_MyArea.ballSpawnY,
+                m_MyArea.ballSpawnClearance,
+                m_Goal.transform.position,
+                m_MyArea.minBallGoalDistance,
+                m_MyArea.allowedBallSpawnAreaIndices);
+            areaBall.transform.SetParent(m_MyArea.transform);
+            areaBall.transform.position = ballPos;
+            m_MyBall.PrepareForThrow();
+            m_BallSpawnAreaIndex = m_MyArea.GetNearestSpawnAreaIndex(areaBall.transform.position);
+
+            Vector3 agentPos = m_MyArea.GetRandomPositionAwayFromAllowedAreas(
+                m_MyArea.agentSpawnY,
+                m_MyArea.agentSpawnClearance,
+                areaBall.transform.position,
+                m_MyArea.minAgentBallDistance,
+                m_MyArea.allowedAgentSpawnAreaIndices);
+            transform.position = agentPos;
+        }
+        else
+        {
+            m_MyArea.PlaceGoalFixed();
+            m_MyArea.PlaceAgentNearGoal(gameObject);
+            int ballSlot = PickBallSlot();
+            m_MyBall.ResetBall(ballSlot);
+            m_GoalSpawnAreaIndex = m_MyArea.GetNearestSpawnAreaIndex(m_Goal.transform.position);
+            m_BallSpawnAreaIndex = ballSlot;
+        }
+
+        if (faceBallAtEpisodeStart)
+        {
+            Vector3 flatToBall = areaBall.transform.position - transform.position;
+            flatToBall.y = 0f;
+            if (flatToBall.sqrMagnitude > 0.001f)
+            {
+                transform.rotation = Quaternion.LookRotation(flatToBall.normalized, Vector3.up);
+            }
+            else
+            {
+                transform.rotation = Quaternion.Euler(0f, Random.Range(0, 360f), 0f);
+            }
+        }
+        else
+        {
+            transform.rotation = Quaternion.Euler(0f, Random.Range(0, 360f), 0f);
+        }
         m_PrevDistToBall = Vector3.Distance(transform.position, areaBall.transform.position);
         m_PrevDistToGoal = Vector3.Distance(transform.position, m_Goal.transform.position);
         m_PrevPosition = transform.position;
     }
 
-    /// <summary>
-    /// Pick a spawn slot for the ball that is far from the goal.
-    /// Picks the farthest slot from goal out of a few random candidates.
-    /// </summary>
+    public void StartFetch()
+    {
+        if (!IsGameMode)
+        {
+            Debug.LogWarning("FetchAgent.StartFetch() should only be called in game mode.");
+            return;
+        }
+
+        isFetching = true;
+        EndEpisode();
+    }
+
+    public void CancelFetch()
+    {
+        if (!IsGameMode)
+        {
+            return;
+        }
+
+        isFetching = false;
+        hasBall = false;
+        currentPhase = FetchPhase.SearchingBall;
+        m_AgentRb.linearVelocity = Vector3.zero;
+        m_AgentRb.angularVelocity = Vector3.zero;
+    }
+
+    public void ResetForEvaluation(int goalSpawnAreaIndex, int ballSpawnAreaIndex, int agentSpawnAreaIndex, float agentYaw)
+    {
+        EnsureInitialized();
+
+        if (IsGameMode)
+        {
+            Debug.LogWarning("ResetForEvaluation is intended for training mode setups.");
+        }
+
+        hasBall = false;
+        isFetching = false;
+        currentPhase = FetchPhase.SearchingBall;
+        m_HasLeftGoalArea = false;
+        m_StuckTimer = 0f;
+        m_EnteredBallArea = false;
+        m_EnteredGoalArea = false;
+        m_EpisodeSucceeded = false;
+
+        m_AgentRb.linearVelocity = Vector3.zero;
+        m_AgentRb.angularVelocity = Vector3.zero;
+
+        m_MyArea.PlaceObject(m_Goal, goalSpawnAreaIndex, m_MyArea.goalSpawnY);
+        m_Goal.SetActive(true);
+        m_GoalSpawnAreaIndex = goalSpawnAreaIndex;
+
+        areaBall.transform.SetParent(m_MyArea.transform);
+        m_MyBall.ResetBall(ballSpawnAreaIndex);
+        m_BallSpawnAreaIndex = ballSpawnAreaIndex;
+
+        m_MyArea.PlaceObject(gameObject, agentSpawnAreaIndex, m_MyArea.agentSpawnY);
+        transform.rotation = Quaternion.Euler(0f, agentYaw, 0f);
+
+        m_PrevDistToBall = Vector3.Distance(transform.position, areaBall.transform.position);
+        m_PrevDistToGoal = Vector3.Distance(transform.position, m_Goal.transform.position);
+        m_PrevPosition = transform.position;
+
+        RequestDecision();
+    }
+
     int PickBallSlot()
     {
         int bestSlot = 0;
         float bestDist = 0f;
         Vector3 goalPos = m_Goal.transform.position;
 
-        // Try a few random candidates and pick the farthest from goal
         for (int i = 0; i < m_MyArea.spawnAreas.Length; i++)
         {
             float dist = Vector3.Distance(m_MyArea.spawnAreas[i].transform.position, goalPos);
@@ -216,37 +454,66 @@ public class FetchAgent : Agent
                 bestSlot = i;
             }
         }
+
         return bestSlot;
     }
 
-    /// <summary>
-    /// Called by FetchBall when the agent picks up the ball.
-    /// </summary>
     public void OnBallCollected()
     {
         hasBall = true;
         currentPhase = FetchPhase.ReturningGoal;
-        AddReward(1.0f);
+        m_EnteredGoalArea = false;
+
+        if (!IsGameMode)
+        {
+            AddReward(ballCollectedReward);
+        }
 
         m_PrevDistToGoal = Vector3.Distance(transform.position, m_Goal.transform.position);
     }
 
+    void CompleteGameFetch()
+    {
+        isFetching = false;
+        m_MyArea.NotifyFetchRoundComplete();
+        OnFetchSuccess?.Invoke();
+
+        m_MyBall.DropBall();
+        hasBall = false;
+        currentPhase = FetchPhase.SearchingBall;
+        m_AgentRb.linearVelocity = Vector3.zero;
+        m_AgentRb.angularVelocity = Vector3.zero;
+    }
+
     void OnCollisionEnter(Collision collision)
     {
-        if (collision.gameObject.CompareTag("goal"))
+        if (!IsGameMode && collision.gameObject.CompareTag("wall"))
         {
-            if (hasBall)
+            AddReward(wallCollisionPenalty);
+        }
+
+        if (!collision.gameObject.CompareTag("goal"))
+        {
+            return;
+        }
+
+        if (hasBall)
+        {
+            if (IsGameMode)
             {
-                // Success: fetched ball and returned to player
-                SetReward(2f);
+                CompleteGameFetch();
+            }
+            else
+            {
+                m_EpisodeSucceeded = true;
+                OnTrainingEpisodeFinished?.Invoke(true);
+                SetReward(fetchCompleteReward);
                 EndEpisode();
             }
-            else if (m_HasLeftGoalArea)
-            {
-                // Came back to player without the ball (only penalize if dog actually left)
-                AddReward(-0.1f);
-            }
-            // If dog hasn't left goal area yet, no penalty — it's just starting
+        }
+        else if (!IsGameMode && m_HasLeftGoalArea)
+        {
+            AddReward(-0.1f);
         }
     }
 }

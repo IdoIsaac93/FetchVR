@@ -99,3 +99,4 @@ InitTestScene*.unity*
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
 /FetchVR/venv/Lib
 /FetchVR/venv
+/FetchVR/results
