@@ -3468,7 +3468,7 @@ MonoBehaviour:
   behaviorParameters: {fileID: 2470184775615212030}
   level1Model: {fileID: 5022602860645237092, guid: 304df5605f26f0f4cbf9a621fc4318a2, type: 3}
   level2Model: {fileID: 5022602860645237092, guid: 2d1c694f75556494e858287b04efac0c, type: 3}
-  level3Model: {fileID: 0}
+  level3Model: {fileID: 5022602860645237092, guid: 615c19788b75db9459afb665082674bc, type: 3}
   currentModelTier: 0
   currentModelName: 
 --- !u!23 &8280120898227807187
