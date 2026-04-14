@@ -2,13 +2,13 @@ behaviors:
   FetchPet:
     trainer_type: ppo
     hyperparameters:
-      batch_size: 2048
-      buffer_size: 20480
+      batch_size: 8192
+      buffer_size: 81920
       learning_rate: 5.0e-5
       beta: 1.0e-3
-      epsilon: 0.2
+      epsilon: 0.15
       lambd: 0.95
-      num_epoch: 3
+      num_epoch: 5
       learning_rate_schedule: linear
     network_settings:
       normalize: true
@@ -18,7 +18,9 @@ behaviors:
       extrinsic:
         gamma: 0.995
         strength: 1.0
+    init_path: results/fetch_new/FetchPet/FetchPet-1874746.pt
     max_steps: 2000000
-    time_horizon: 128
-    summary_freq: 10000
-    keep_checkpoints: 5
+    time_horizon: 512
+    summary_freq: 5000
+    keep_checkpoints: 40
+    checkpoint_interval: 25000
