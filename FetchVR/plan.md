@@ -122,3 +122,40 @@
 - 整理训练配置、模型文件和场景引用
 - 保持训练场景与游玩场景职责分离
 - 为后续同学补充模型使用说明和场景配置说明
+## 2026-04-13 Update
+
+### FetchGameController
+
+- Removed the pet-to-complete step from `FetchGameController`.
+- A fetch round now completes automatically when the dog reaches the goal and `OnFetchSuccess` fires.
+- Training progress is granted immediately on successful return via `dogStatus.AddTraining(1)`.
+- The dog run animation is now driven by Animator bool `Run`.
+- `Run = true` when fetch starts.
+- `Run = false` when the dog returns successfully or when the round is reset.
+
+### VR Throw And Input
+
+- Kept keyboard controls `T / F / R` for editor testing.
+- Added VR controller input support to `FetchGameController`.
+- Default VR mapping is:
+- `TriggerButton` = throw ball
+- `PrimaryButton` = command dog to fetch
+- `SecondaryButton` = reset round
+- Ball hold position now prefers the right XR controller and is placed in front of it using `xrHandOffset`.
+- Added auto-assignment attempt for right controller transform by searching `XR Controller Right` in scene.
+- Added fallback to XR device position/rotation if the controller transform is not assigned.
+
+### VR Throw Physics
+
+- VR throw direction now uses right controller orientation instead of the old keyboard-style throw angle.
+- VR throw velocity now reads controller `deviceVelocity`.
+- Added `xrThrowVelocityMultiplier` for tuning controller throw strength.
+- Added `xrMinThrowSpeed` threshold so tiny/no hand motion does not produce a strong throw.
+- Disabled fallback forward throw speed by default.
+- If needed, fallback speed can be re-enabled with `useXrFallbackThrowSpeed`.
+
+### XR Input Asset
+
+- Updated `Assets/Samples/XR Interaction Toolkit/3.3.0/Starter Assets/XRI Default Input Actions.inputactions`.
+- Moved right-hand `Jump` off `PrimaryButton`.
+- Right-hand `Jump` is currently bound to `Primary2DAxisClick` so `PrimaryButton` can be used for fetch gameplay input.
