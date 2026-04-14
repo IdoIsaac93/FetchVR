@@ -17,8 +17,7 @@ namespace FetchVR.Dog
         {
             BallInHand,     // Ball at player hand, waiting for throw
             BallThrown,     // Ball landed, waiting for fetch command
-            DogFetching,    // Dog is going to get the ball / returning
-            DogReturned     // Dog returned with ball, waiting for pet
+            DogFetching     // Dog is going to get the ball / returning
         }
 
         [Header("References")]
@@ -26,7 +25,7 @@ namespace FetchVR.Dog
         [SerializeField] private FetchBall fetchBall;
         [SerializeField] private Transform playerTransform;  // The goal / VR camera rig
         [SerializeField] private DogStatusController dogStatus;
-        [SerializeField] private DogPetInteraction petInteraction;
+        [SerializeField] private Animator dogAnimator;
 
         [Header("Hand Settings")]
         [Tooltip("Offset from player position where the ball is held")]
@@ -42,8 +41,10 @@ namespace FetchVR.Dog
         [Header("Keys")]
         [SerializeField] private KeyCode throwKey = KeyCode.T;
         [SerializeField] private KeyCode fetchKey = KeyCode.F;
-        [SerializeField] private KeyCode petKey = KeyCode.P;
         [SerializeField] private KeyCode resetKey = KeyCode.R;
+
+        [Header("Animation")]
+        [SerializeField] private string runBoolName = "Run";
 
         [Header("Debug")]
         [SerializeField] private GameState currentState;
@@ -135,12 +136,6 @@ namespace FetchVR.Dog
                     // Waiting for dog to return — handled by event
                     break;
 
-                case GameState.DogReturned:
-                    if (Input.GetKeyDown(petKey))
-                    {
-                        PetDogAndReset();
-                    }
-                    break;
             }
         }
 
@@ -183,6 +178,7 @@ namespace FetchVR.Dog
 
         private void EnterBallInHand()
         {
+            SetDogRun(false);
             currentState = GameState.BallInHand;
             Debug.Log($"[FetchGame] Ball in hand. Press [{throwKey}] to throw.");
         }
@@ -210,6 +206,7 @@ namespace FetchVR.Dog
             }
 
             fetchAgent.StartFetch();
+            SetDogRun(true);
 
             currentState = GameState.DogFetching;
             Debug.Log("[FetchGame] Dog is fetching...");
@@ -217,19 +214,8 @@ namespace FetchVR.Dog
 
         private void HandleDogReturned()
         {
-            currentState = GameState.DogReturned;
-            Debug.Log($"[FetchGame] Dog returned! Press [{petKey}] to pet dog.");
-        }
+            SetDogRun(false);
 
-        private void PetDogAndReset()
-        {
-            // Pet the dog (increases mood + triggers animation)
-            if (petInteraction != null)
-            {
-                petInteraction.PetFromEvent();
-            }
-
-            // Add training progress
             if (dogStatus != null)
             {
                 dogStatus.AddTraining(1);
@@ -238,7 +224,6 @@ namespace FetchVR.Dog
             roundCount++;
             Debug.Log($"[FetchGame] Round {roundCount} complete! Dog level: {(dogStatus != null ? dogStatus.CurrentLevel : 0)}");
 
-            // Return ball to hand
             EnterBallInHand();
         }
 
@@ -247,6 +232,7 @@ namespace FetchVR.Dog
             if (fetchAgent != null)
             {
                 fetchAgent.CancelFetch();
+                SetDogRun(false);
 
                 if (fetchAgent.area != null)
                 {
@@ -266,6 +252,16 @@ namespace FetchVR.Dog
 
             EnterBallInHand();
             Debug.Log($"[FetchGame] Round reset. Press [{throwKey}] to throw again.");
+        }
+
+        private void SetDogRun(bool isRunning)
+        {
+            if (dogAnimator == null || string.IsNullOrWhiteSpace(runBoolName))
+            {
+                return;
+            }
+
+            dogAnimator.SetBool(runBoolName, isRunning);
         }
 
         private void OnGUI()
@@ -305,10 +301,6 @@ namespace FetchVR.Dog
                             ? fetchAgent.GetComponent<Rigidbody>().linearVelocity.magnitude : 0f;
                         GUILayout.Label($"To ball: <b>{distToBall:F1}m</b> | To player: <b>{distToGoal:F1}m</b> | Speed: <b>{speed:F1}</b>");
                     }
-                    break;
-                case GameState.DogReturned:
-                    GUILayout.Label($"Press <b>[{petKey}]</b> to pet dog & start next round");
-                    GUILayout.Label($"Press <b>[{resetKey}]</b> to reset round");
                     break;
             }
             GUILayout.EndArea();
