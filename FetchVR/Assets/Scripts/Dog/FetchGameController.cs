@@ -470,6 +470,7 @@ namespace FetchVR.Dog
             };
         }
 
+        /*
         private void OnGUI()
         {
             GUILayout.BeginArea(new Rect(10, 10, 350, 200));
@@ -514,5 +515,6 @@ namespace FetchVR.Dog
             }
             GUILayout.EndArea();
         }
+        */
     }
 }

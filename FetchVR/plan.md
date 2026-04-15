@@ -159,3 +159,29 @@
 - Updated `Assets/Samples/XR Interaction Toolkit/3.3.0/Starter Assets/XRI Default Input Actions.inputactions`.
 - Moved right-hand `Jump` off `PrimaryButton`.
 - Right-hand `Jump` is currently bound to `Primary2DAxisClick` so `PrimaryButton` can be used for fetch gameplay input.
+
+## 2026-04-14 Update
+
+### Goal Follow Fix
+
+- Investigated the issue where `Goal` moved with `XR Origin (XR Rig)` in edit mode but stayed behind after entering play mode.
+- Confirmed the problem was not caused by `TitleScreen` scene loading logic; `TitleScreen` only calls `SceneManager.LoadScene(1)`.
+- Traced the runtime `Goal` in `BasicScene` back to `Assets/Scenes/Level1/XR Origin (XR Rig).prefab`.
+- Found that this XR rig prefab's `Goal` object only had `Transform + BoxCollider` and was missing `GoalFollowCamera`.
+- Reattached `GoalFollowCamera` to the prefab `Goal` and bound `xrCamera` to the rig's `Main Camera`.
+- Added a fallback in `GoalFollowCamera` so it auto-resolves `Camera.main` if `xrCamera` is not assigned in the Inspector.
+
+### Debug Overlay Cleanup
+
+- Investigated the `Fetch Game - Round 0` text shown at the top-left during play mode.
+- Confirmed it was not coming from a scene `Canvas` or TMP object.
+- Found the overlay was drawn by `FetchGameController.OnGUI()` using Unity IMGUI.
+- Commented out `OnGUI()` in `FetchGameController` to remove the temporary debug HUD without changing fetch gameplay logic.
+
+### UI Binding Support
+
+- Added `Assets/Scripts/UI/LevelTextBinder.cs`.
+- `LevelTextBinder` exposes `SetLevelText(int level)` for binding `DogStatusController.onLevelChanged` to a TMP text object in the Inspector.
+- Documented the existing event-based UI hookup path:
+- `onMoodPercentChanged` can drive a `Slider.value` directly when the slider range is `0..1`.
+- `onLevelChanged` should use a small binder script to convert the `int` level into display text.

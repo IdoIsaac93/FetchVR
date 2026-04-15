@@ -19,6 +19,23 @@ namespace FetchVR.Dog
 
         private void Awake()
         {
+            if (xrCamera == null)
+            {
+                Camera mainCamera = Camera.main;
+                if (mainCamera != null)
+                {
+                    xrCamera = mainCamera.transform;
+                }
+                else
+                {
+                    Camera cameraInParents = GetComponentInParent<Camera>();
+                    if (cameraInParents != null)
+                    {
+                        xrCamera = cameraInParents.transform;
+                    }
+                }
+            }
+
             if (fetchArea == null)
             {
                 FetchArea[] areas = FindObjectsByType<FetchArea>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
