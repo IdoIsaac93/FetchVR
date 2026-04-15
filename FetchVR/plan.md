@@ -185,3 +185,26 @@
 - Documented the existing event-based UI hookup path:
 - `onMoodPercentChanged` can drive a `Slider.value` directly when the slider range is `0..1`.
 - `onLevelChanged` should use a small binder script to convert the `int` level into display text.
+
+## 2026-04-15 Update
+
+### Title Screen Panels
+
+- Added `Assets/Scripts/UI/ToturialScreen.cs` for paged tutorial content inside a Canvas panel.
+- `ToturialScreen` supports `Show()`, `Hide()`, `Close()`, `NextPage()`, `PreviousPage()`, and `GoToPage(int)`.
+- Tutorial content is not hardcoded in script; pages are configured from the Inspector via a serialized list.
+- Added `Assets/Scripts/UI/SettingScreen.cs` as a minimal settings panel controller.
+- `SettingScreen` currently supports `Show()`, `Hide()`, and `Close()` only.
+
+### TitleScreen Integration
+
+- Extended `Assets/Scripts/UI/TitleScreen.cs` with a `ShowTutorial()` flow that opens the scene's `ToturialScreen`.
+- Extended `Assets/Scripts/UI/TitleScreen.cs` with a `ShowSetting()` flow that opens the scene's `SettingScreen`.
+- Both panel entry points first use Inspector references and then fall back to `FindFirstObjectByType(..., FindObjectsInactive.Include)`.
+- Added warning logs when the requested panel controller cannot be found in the scene.
+
+### UI Wiring Notes
+
+- No scene objects or bindings were auto-created by script changes.
+- Tutorial and settings buttons still need to be wired in the Inspector to `TitleScreen.ShowTutorial()` and `TitleScreen.ShowSetting()`.
+- Panel close buttons should be wired to `ToturialScreen.Close()` and `SettingScreen.Close()`.
