@@ -119,11 +119,14 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+<<<<<<< HEAD
 --- !u!4 &275435632 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1670256625, guid: 31f2633ae9c7fa3458eac61f91cf7d60, type: 3}
   m_PrefabInstance: {fileID: 1675210970}
   m_PrefabAsset: {fileID: 0}
+=======
+>>>>>>> parent of 3f3a701 (Visual upgrades)
 --- !u!1 &299639867
 GameObject:
   m_ObjectHideFlags: 0
@@ -240,6 +243,7 @@ MonoBehaviour:
   m_LightCookieSize: {x: 1, y: 1}
   m_LightCookieOffset: {x: 0, y: 0}
   m_SoftShadowQuality: 0
+<<<<<<< HEAD
   m_RenderingLayersMask:
     serializedVersion: 0
     m_Bits: 1
@@ -785,6 +789,9 @@ CanvasRenderer:
   m_GameObject: {fileID: 1626112272}
   m_CullTransparentMesh: 1
 --- !u!1001 &1675210970
+=======
+--- !u!1001 &441087506
+>>>>>>> parent of 3f3a701 (Visual upgrades)
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -840,6 +847,7 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
+<<<<<<< HEAD
   m_SourcePrefab: {fileID: 100100000, guid: 31f2633ae9c7fa3458eac61f91cf7d60, type: 3}
 --- !u!20 &1675210971 stripped
 Camera:
@@ -904,6 +912,10 @@ PrefabInstance:
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 2658abc5fee3a7548a90543920743983, type: 3}
 --- !u!1 &1827912791
+=======
+  m_SourcePrefab: {fileID: 100100000, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+--- !u!1 &756192406
+>>>>>>> parent of 3f3a701 (Visual upgrades)
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -990,6 +1002,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+<<<<<<< HEAD
 --- !u!4 &1892056993 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1767192434, guid: 31f2633ae9c7fa3458eac61f91cf7d60, type: 3}
@@ -1098,6 +1111,9 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
 --- !u!1 &706373323815257427
+=======
+--- !u!1 &1249617917
+>>>>>>> parent of 3f3a701 (Visual upgrades)
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1105,15 +1121,26 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
+<<<<<<< HEAD
   - component: {fileID: 7893883095167464942}
   - component: {fileID: 3514735849041235238}
   m_Layer: 0
   m_Name: Area (7)
+=======
+  - component: {fileID: 1249617921}
+  - component: {fileID: 1249617920}
+  - component: {fileID: 1249617919}
+  - component: {fileID: 1249617918}
+  - component: {fileID: 1249617922}
+  m_Layer: 0
+  m_Name: Plane
+>>>>>>> parent of 3f3a701 (Visual upgrades)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+<<<<<<< HEAD
 --- !u!23 &788553994306726389
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -2620,26 +2647,30 @@ MeshRenderer:
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!64 &4873171268858627984
+=======
+--- !u!64 &1249617918
+>>>>>>> parent of 3f3a701 (Visual upgrades)
 MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2705095753523542113}
-  m_Material: {fileID: 13400000, guid: b721382df122bc445a75c416e1b2a14c, type: 2}
+  m_GameObject: {fileID: 1249617917}
+  m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
   m_ExcludeLayers:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 0
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 5
-  m_Convex: 1
+  m_Convex: 0
   m_CookingOptions: 30
+<<<<<<< HEAD
   m_Mesh: {fileID: -445222749071967856, guid: 3405ec22bef4339439b628ee6e6bdb36, type: 3}
 --- !u!114 &4978914053363110535
 MonoBehaviour:
@@ -2996,6 +3027,10 @@ Transform:
   m_Father: {fileID: 4107626232086667945}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!23 &6696852639177831576
+=======
+  m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!23 &1249617919
+>>>>>>> parent of 3f3a701 (Visual upgrades)
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -3044,6 +3079,7 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+<<<<<<< HEAD
 --- !u!4 &6879095935969124884
 Transform:
   m_ObjectHideFlags: 0
@@ -3068,11 +3104,15 @@ Transform:
   m_Father: {fileID: 4681873245950718441}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &6894696589682582595
+=======
+--- !u!33 &1249617920
+>>>>>>> parent of 3f3a701 (Visual upgrades)
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
+<<<<<<< HEAD
   m_GameObject: {fileID: 8395360989349475837}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!23 &6913085604705737200
@@ -3142,11 +3182,17 @@ GameObject:
   m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &7011217391228577346
+=======
+  m_GameObject: {fileID: 1249617917}
+  m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &1249617921
+>>>>>>> parent of 3f3a701 (Visual upgrades)
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
+<<<<<<< HEAD
   m_GameObject: {fileID: 4112470124959271308}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -3365,11 +3411,24 @@ BoxCollider:
   m_Size: {x: 1, y: 10, z: 1}
   m_Center: {x: 0, y: 4.5, z: 0}
 --- !u!114 &8230891385873677332
+=======
+  m_GameObject: {fileID: 1249617917}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 10, y: 10, z: 10}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 4
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1249617922
+>>>>>>> parent of 3f3a701 (Visual upgrades)
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
+<<<<<<< HEAD
   m_GameObject: {fileID: 3026034289059021409}
   m_Enabled: 1
   m_EditorHideFlags: 0
@@ -3552,6 +3611,9 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 912326368554723921}
+=======
+  m_GameObject: {fileID: 1249617917}
+>>>>>>> parent of 3f3a701 (Visual upgrades)
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 38f6bf3d943ac7945842268c9ef1dca6, type: 3}
@@ -3628,12 +3690,13 @@ MonoBehaviour:
   m_Teleporting:
     m_PersistentCalls:
       m_Calls: []
---- !u!33 &8744652340144701317
-MeshFilter:
+--- !u!1 &2092139007
+GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
+<<<<<<< HEAD
   m_GameObject: {fileID: 2705095753523542113}
   m_Mesh: {fileID: -445222749071967856, guid: 3405ec22bef4339439b628ee6e6bdb36, type: 3}
 --- !u!1 &8765296105424193950
@@ -3648,11 +3711,21 @@ GameObject:
   - component: {fileID: 2163580530269747314}
   m_Layer: 0
   m_Name: Area
+=======
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2092139010}
+  - component: {fileID: 2092139009}
+  - component: {fileID: 2092139008}
+  m_Layer: 0
+  m_Name: EventSystem
+>>>>>>> parent of 3f3a701 (Visual upgrades)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+<<<<<<< HEAD
 --- !u!65 &8771958993702143290
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -3726,6 +3799,9 @@ Transform:
   m_Father: {fileID: 4107626232086667945}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &9155103048861633702
+=======
+--- !u!114 &2092139008
+>>>>>>> parent of 3f3a701 (Visual upgrades)
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -3814,6 +3890,7 @@ MonoBehaviour:
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
+<<<<<<< HEAD
   m_Roots:
   - {fileID: 299639869}
   - {fileID: 1827912794}
@@ -3822,3 +3899,32 @@ SceneRoots:
   - {fileID: 1353995336}
   - {fileID: 4681873245950718441}
   - {fileID: 1187313347}
+=======
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2092139007}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76c392e42b5098c458856cdf6ecaaaa1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_FirstSelected: {fileID: 0}
+  m_sendNavigationEvents: 1
+  m_DragThreshold: 10
+--- !u!4 &2092139010
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2092139007}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.6751227, y: -2.2229433, z: -23.114769}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 3
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+>>>>>>> parent of 3f3a701 (Visual upgrades)
