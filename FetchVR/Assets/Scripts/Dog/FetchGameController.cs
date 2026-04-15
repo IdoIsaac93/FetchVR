@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.XR;
 
 namespace FetchVR.Dog
 {
@@ -13,24 +15,36 @@ namespace FetchVR.Dog
     /// </summary>
     public class FetchGameController : MonoBehaviour
     {
+        private enum XRButton
+        {
+            TriggerButton,
+            GripButton,
+            PrimaryButton,
+            SecondaryButton,
+            MenuButton,
+            Primary2DAxisClick
+        }
+
         public enum GameState
         {
             BallInHand,     // Ball at player hand, waiting for throw
             BallThrown,     // Ball landed, waiting for fetch command
-            DogFetching,    // Dog is going to get the ball / returning
-            DogReturned     // Dog returned with ball, waiting for pet
+            DogFetching     // Dog is going to get the ball / returning
         }
 
         [Header("References")]
         [SerializeField] private FetchAgent fetchAgent;
         [SerializeField] private FetchBall fetchBall;
         [SerializeField] private Transform playerTransform;  // The goal / VR camera rig
+        [SerializeField] private Transform xrRightControllerTransform;
         [SerializeField] private DogStatusController dogStatus;
-        [SerializeField] private DogPetInteraction petInteraction;
+        [SerializeField] private Animator dogAnimator;
 
         [Header("Hand Settings")]
         [Tooltip("Offset from player position where the ball is held")]
         [SerializeField] private Vector3 handOffset = new Vector3(0.5f, 1.0f, 0.5f);
+        [Tooltip("Offset in front of the right XR controller where the ball is held before throwing")]
+        [SerializeField] private Vector3 xrHandOffset = new Vector3(0f, -0.02f, 0.18f);
 
         [Header("Throw Settings")]
         [SerializeField] private float throwForce = 10f;
@@ -38,12 +52,28 @@ namespace FetchVR.Dog
         [SerializeField] private float throwReleaseForwardDistance = 0.45f;
         [SerializeField] private float throwReleaseUpDistance = 0.15f;
         [SerializeField] private float ignorePlayerCollisionDuration = 0.2f;
+        [Tooltip("Multiplier applied to XR controller linear velocity when throwing in VR")]
+        [SerializeField] private float xrThrowVelocityMultiplier = 1.0f;
+        [Tooltip("Minimum controller speed required before a VR throw gets extra velocity")]
+        [SerializeField] private float xrMinThrowSpeed = 0.25f;
+        [Tooltip("If enabled, use a fallback forward speed when the XR controller has no usable velocity")]
+        [SerializeField] private bool useXrFallbackThrowSpeed = false;
+        [Tooltip("Fallback speed used only when the XR controller does not provide linear velocity and fallback is enabled")]
+        [SerializeField] private float xrFallbackThrowSpeed = 8f;
 
         [Header("Keys")]
         [SerializeField] private KeyCode throwKey = KeyCode.T;
         [SerializeField] private KeyCode fetchKey = KeyCode.F;
-        [SerializeField] private KeyCode petKey = KeyCode.P;
         [SerializeField] private KeyCode resetKey = KeyCode.R;
+
+        [Header("VR Input")]
+        [SerializeField] private XRNode xrControllerNode = XRNode.RightHand;
+        [SerializeField] private XRButton xrThrowButton = XRButton.TriggerButton;
+        [SerializeField] private XRButton xrFetchButton = XRButton.PrimaryButton;
+        [SerializeField] private XRButton xrResetButton = XRButton.SecondaryButton;
+
+        [Header("Animation")]
+        [SerializeField] private string runBoolName = "Run";
 
         [Header("Debug")]
         [SerializeField] private GameState currentState;
@@ -51,9 +81,17 @@ namespace FetchVR.Dog
         [SerializeField] private bool disableOutsideGameMode = true;
 
         private bool m_IsActiveForCurrentMode = true;
+        private InputAction m_XrThrowAction;
+        private InputAction m_XrFetchAction;
+        private InputAction m_XrResetAction;
+        private InputAction m_XrVelocityAction;
+        private InputAction m_XrPositionAction;
+        private InputAction m_XrRotationAction;
 
         private void Awake()
         {
+            EnsureXrActionsCreated();
+            TryAutoAssignRightControllerTransform();
             m_IsActiveForCurrentMode = IsGameMode();
 
             if (!m_IsActiveForCurrentMode && disableOutsideGameMode)
@@ -73,6 +111,8 @@ namespace FetchVR.Dog
             {
                 fetchAgent.OnFetchSuccess += HandleDogReturned;
             }
+
+            EnableXrActions();
         }
 
         private void OnDisable()
@@ -86,6 +126,8 @@ namespace FetchVR.Dog
             {
                 fetchAgent.OnFetchSuccess -= HandleDogReturned;
             }
+
+            DisableXrActions();
         }
 
         private void Start()
@@ -106,7 +148,10 @@ namespace FetchVR.Dog
                 return;
             }
 
-            if (Input.GetKeyDown(resetKey))
+            TryAutoAssignRightControllerTransform();
+
+            bool resetPressed = Input.GetKeyDown(resetKey) || GetXrButtonDown(m_XrResetAction);
+            if (resetPressed)
             {
                 ResetRound();
                 return;
@@ -118,14 +163,16 @@ namespace FetchVR.Dog
                     // Keep ball at hand position
                     fetchBall.HoldAtPosition(GetHandPosition());
 
-                    if (Input.GetKeyDown(throwKey))
+                    bool keyboardThrowPressed = Input.GetKeyDown(throwKey);
+                    bool xrThrowPressed = GetXrButtonDown(m_XrThrowAction);
+                    if (keyboardThrowPressed || xrThrowPressed)
                     {
-                        ThrowBall();
+                        ThrowBall(useVrControllerAim: xrThrowPressed && !keyboardThrowPressed);
                     }
                     break;
 
                 case GameState.BallThrown:
-                    if (Input.GetKeyDown(fetchKey))
+                    if (Input.GetKeyDown(fetchKey) || GetXrButtonDown(m_XrFetchAction))
                     {
                         CommandDogFetch();
                     }
@@ -135,12 +182,6 @@ namespace FetchVR.Dog
                     // Waiting for dog to return — handled by event
                     break;
 
-                case GameState.DogReturned:
-                    if (Input.GetKeyDown(petKey))
-                    {
-                        PetDogAndReset();
-                    }
-                    break;
             }
         }
 
@@ -165,6 +206,23 @@ namespace FetchVR.Dog
 
         private Vector3 GetHandPosition()
         {
+            Transform vrReference = GetVrThrowReference();
+            if (vrReference != null)
+            {
+                return vrReference.TransformPoint(xrHandOffset);
+            }
+
+            if (m_XrPositionAction != null && m_XrRotationAction != null)
+            {
+                Vector3 xrPosition = m_XrPositionAction.ReadValue<Vector3>();
+                Quaternion xrRotation = m_XrRotationAction.ReadValue<Quaternion>();
+                if (xrPosition.sqrMagnitude > 0.0001f)
+                {
+                    Quaternion rotation = xrRotation == default ? Quaternion.identity : xrRotation;
+                    return xrPosition + rotation * xrHandOffset;
+                }
+            }
+
             if (playerTransform == null) return transform.position + handOffset;
             return playerTransform.position
                    + playerTransform.right * handOffset.x
@@ -172,29 +230,64 @@ namespace FetchVR.Dog
                    + playerTransform.forward * handOffset.z;
         }
 
-        private Vector3 GetThrowDirection()
+        private Vector3 GetThrowDirection(bool useVrControllerAim)
         {
+            Transform vrReference = GetVrThrowReference();
+            if (useVrControllerAim && vrReference != null)
+            {
+                return vrReference.forward.normalized;
+            }
+
+            if (useVrControllerAim && m_XrRotationAction != null)
+            {
+                Quaternion xrRotation = m_XrRotationAction.ReadValue<Quaternion>();
+                if (xrRotation != default)
+                {
+                    return (xrRotation * Vector3.forward).normalized;
+                }
+            }
+
             Vector3 forward = playerTransform != null ? playerTransform.forward : transform.forward;
             // Add some upward angle
             return Quaternion.AngleAxis(-throwUpAngle, playerTransform != null ? playerTransform.right : transform.right) * forward;
+        }
+
+        private Transform GetVrThrowReference()
+        {
+            if (xrRightControllerTransform != null)
+            {
+                return xrRightControllerTransform;
+            }
+
+            return null;
         }
 
         // ───────────────────────────── State transitions ─────────────────────────────
 
         private void EnterBallInHand()
         {
+            SetDogRun(false);
             currentState = GameState.BallInHand;
             Debug.Log($"[FetchGame] Ball in hand. Press [{throwKey}] to throw.");
         }
 
-        private void ThrowBall()
+        private void ThrowBall(bool useVrControllerAim)
         {
-            Transform reference = playerTransform != null ? playerTransform : transform;
-            Vector3 releasePosition = GetHandPosition()
-                                      + reference.forward * throwReleaseForwardDistance
-                                      + reference.up * throwReleaseUpDistance;
-            Vector3 velocity = GetThrowDirection() * throwForce;
-            Collider[] playerColliders = reference.root.GetComponentsInChildren<Collider>(true);
+            Transform vrReference = GetVrThrowReference();
+            bool hasVrReference = useVrControllerAim && vrReference != null;
+            Transform reference = hasVrReference
+                ? vrReference
+                : (playerTransform != null ? playerTransform : transform);
+            Vector3 releasePosition = useVrControllerAim
+                ? GetHandPosition()
+                : reference.position
+                  + reference.forward * throwReleaseForwardDistance
+                  + reference.up * throwReleaseUpDistance;
+            Vector3 velocity = useVrControllerAim
+                ? GetVrThrowVelocity(reference)
+                : GetThrowDirection(false) * throwForce;
+            Transform colliderReference = hasVrReference ? reference.root : reference.root;
+            Collider[] playerColliders = colliderReference.GetComponentsInChildren<Collider>(true);
             fetchBall.ThrowBallFrom(releasePosition, velocity, playerColliders, ignorePlayerCollisionDuration);
 
             currentState = GameState.BallThrown;
@@ -210,6 +303,7 @@ namespace FetchVR.Dog
             }
 
             fetchAgent.StartFetch();
+            SetDogRun(true);
 
             currentState = GameState.DogFetching;
             Debug.Log("[FetchGame] Dog is fetching...");
@@ -217,19 +311,8 @@ namespace FetchVR.Dog
 
         private void HandleDogReturned()
         {
-            currentState = GameState.DogReturned;
-            Debug.Log($"[FetchGame] Dog returned! Press [{petKey}] to pet dog.");
-        }
+            SetDogRun(false);
 
-        private void PetDogAndReset()
-        {
-            // Pet the dog (increases mood + triggers animation)
-            if (petInteraction != null)
-            {
-                petInteraction.PetFromEvent();
-            }
-
-            // Add training progress
             if (dogStatus != null)
             {
                 dogStatus.AddTraining(1);
@@ -238,7 +321,6 @@ namespace FetchVR.Dog
             roundCount++;
             Debug.Log($"[FetchGame] Round {roundCount} complete! Dog level: {(dogStatus != null ? dogStatus.CurrentLevel : 0)}");
 
-            // Return ball to hand
             EnterBallInHand();
         }
 
@@ -247,6 +329,7 @@ namespace FetchVR.Dog
             if (fetchAgent != null)
             {
                 fetchAgent.CancelFetch();
+                SetDogRun(false);
 
                 if (fetchAgent.area != null)
                 {
@@ -268,6 +351,125 @@ namespace FetchVR.Dog
             Debug.Log($"[FetchGame] Round reset. Press [{throwKey}] to throw again.");
         }
 
+        private void SetDogRun(bool isRunning)
+        {
+            if (dogAnimator == null || string.IsNullOrWhiteSpace(runBoolName))
+            {
+                return;
+            }
+
+            dogAnimator.SetBool(runBoolName, isRunning);
+        }
+
+        private bool GetXrButtonDown(InputAction action)
+        {
+            return action != null && action.WasPressedThisFrame();
+        }
+
+        private Vector3 GetVrThrowVelocity(Transform reference)
+        {
+            if (m_XrVelocityAction != null)
+            {
+                Vector3 deviceVelocity = m_XrVelocityAction.ReadValue<Vector3>();
+                float speed = deviceVelocity.magnitude;
+                if (speed >= xrMinThrowSpeed)
+                {
+                    return deviceVelocity * xrThrowVelocityMultiplier;
+                }
+            }
+
+            if (useXrFallbackThrowSpeed)
+            {
+                return GetThrowDirection(true) * xrFallbackThrowSpeed;
+            }
+
+            return Vector3.zero;
+        }
+
+        private void EnsureXrActionsCreated()
+        {
+            if (m_XrThrowAction != null)
+            {
+                return;
+            }
+
+            string hand = xrControllerNode == XRNode.LeftHand ? "LeftHand" : "RightHand";
+
+            m_XrThrowAction = CreateButtonAction($"<XRController>{{{hand}}}/{GetInputSystemButtonPath(xrThrowButton)}");
+            m_XrFetchAction = CreateButtonAction($"<XRController>{{{hand}}}/{GetInputSystemButtonPath(xrFetchButton)}");
+            m_XrResetAction = CreateButtonAction($"<XRController>{{{hand}}}/{GetInputSystemButtonPath(xrResetButton)}");
+            m_XrVelocityAction = CreateValueAction($"<XRController>{{{hand}}}/deviceVelocity", expectedControlType: "Vector3");
+            m_XrPositionAction = CreateValueAction($"<XRController>{{{hand}}}/devicePosition", expectedControlType: "Vector3");
+            m_XrRotationAction = CreateValueAction($"<XRController>{{{hand}}}/deviceRotation", expectedControlType: "Quaternion");
+        }
+
+        private void EnableXrActions()
+        {
+            m_XrThrowAction?.Enable();
+            m_XrFetchAction?.Enable();
+            m_XrResetAction?.Enable();
+            m_XrVelocityAction?.Enable();
+            m_XrPositionAction?.Enable();
+            m_XrRotationAction?.Enable();
+        }
+
+        private void DisableXrActions()
+        {
+            m_XrThrowAction?.Disable();
+            m_XrFetchAction?.Disable();
+            m_XrResetAction?.Disable();
+            m_XrVelocityAction?.Disable();
+            m_XrPositionAction?.Disable();
+            m_XrRotationAction?.Disable();
+        }
+
+        private void TryAutoAssignRightControllerTransform()
+        {
+            if (xrRightControllerTransform != null)
+            {
+                return;
+            }
+
+            GameObject rightController = GameObject.Find("XR Controller Right");
+            if (rightController != null)
+            {
+                xrRightControllerTransform = rightController.transform;
+                return;
+            }
+
+            Transform fallback = transform.root.Find("XR Origin (XR Rig)/Camera Offset/XR Controller Right");
+            if (fallback != null)
+            {
+                xrRightControllerTransform = fallback;
+            }
+        }
+
+        private static InputAction CreateButtonAction(string binding)
+        {
+            var action = new InputAction(type: InputActionType.Button, binding: binding);
+            action.wantsInitialStateCheck = false;
+            return action;
+        }
+
+        private static InputAction CreateValueAction(string binding, string expectedControlType)
+        {
+            return new InputAction(type: InputActionType.Value, binding: binding, expectedControlType: expectedControlType);
+        }
+
+        private static string GetInputSystemButtonPath(XRButton button)
+        {
+            return button switch
+            {
+                XRButton.TriggerButton => "triggerPressed",
+                XRButton.GripButton => "gripPressed",
+                XRButton.PrimaryButton => "primaryButton",
+                XRButton.SecondaryButton => "secondaryButton",
+                XRButton.MenuButton => "menu",
+                XRButton.Primary2DAxisClick => "primary2DAxisClick",
+                _ => "triggerPressed"
+            };
+        }
+
         private void OnGUI()
         {
             GUILayout.BeginArea(new Rect(10, 10, 350, 200));
@@ -286,14 +488,17 @@ namespace FetchVR.Dog
             {
                 case GameState.BallInHand:
                     GUILayout.Label($"Press <b>[{throwKey}]</b> to throw ball");
+                    GUILayout.Label($"XR <b>[{xrThrowButton}]</b> to throw ball");
                     GUILayout.Label($"Press <b>[{resetKey}]</b> to reset round");
                     break;
                 case GameState.BallThrown:
                     GUILayout.Label($"Press <b>[{fetchKey}]</b> to command dog");
+                    GUILayout.Label($"XR <b>[{xrFetchButton}]</b> to command dog");
                     GUILayout.Label($"Press <b>[{resetKey}]</b> to reset round");
                     break;
                 case GameState.DogFetching:
                     GUILayout.Label($"Press <b>[{resetKey}]</b> to reset round");
+                    GUILayout.Label($"XR <b>[{xrResetButton}]</b> to reset round");
                     string phase = fetchAgent != null ? fetchAgent.currentPhase.ToString() : "?";
                     bool hasBall = fetchAgent != null && fetchAgent.hasBall;
                     GUILayout.Label($"Dog phase: <b>{phase}</b> | hasBall: {hasBall}");
@@ -305,10 +510,6 @@ namespace FetchVR.Dog
                             ? fetchAgent.GetComponent<Rigidbody>().linearVelocity.magnitude : 0f;
                         GUILayout.Label($"To ball: <b>{distToBall:F1}m</b> | To player: <b>{distToGoal:F1}m</b> | Speed: <b>{speed:F1}</b>");
                     }
-                    break;
-                case GameState.DogReturned:
-                    GUILayout.Label($"Press <b>[{petKey}]</b> to pet dog & start next round");
-                    GUILayout.Label($"Press <b>[{resetKey}]</b> to reset round");
                     break;
             }
             GUILayout.EndArea();
