@@ -6,6 +6,7 @@ namespace FetchVR.Dog
     public class DogPetInteraction : MonoBehaviour
     {
         [SerializeField] private DogStatusController dogStatus;
+        [SerializeField] private DogAudioController dogAudioController;
         [SerializeField] private float petCooldownSeconds = 1f;
         [SerializeField] private int moodGainPerPet = 1;
         [Header("Pet Animation")]
@@ -16,6 +17,14 @@ namespace FetchVR.Dog
         [SerializeField] private UnityEvent onPetSucceeded = new UnityEvent();
 
         private float lastPetTime = float.NegativeInfinity;
+
+        private void Awake()
+        {
+            if (dogAudioController == null)
+            {
+                dogAudioController = GetComponent<DogAudioController>();
+            }
+        }
 
         public void TryPetFromTriggerPress()
         {
@@ -42,6 +51,7 @@ namespace FetchVR.Dog
             lastPetTime = Time.time;
             dogStatus.AddMood(moodGainPerPet);
             PlayPetAnimation();
+            dogAudioController?.PlayPetSound();
             onPetSucceeded.Invoke();
         }
 

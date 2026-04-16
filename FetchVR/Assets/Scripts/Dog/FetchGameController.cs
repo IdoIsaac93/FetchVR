@@ -38,6 +38,7 @@ namespace FetchVR.Dog
         [SerializeField] private Transform playerTransform;  // The goal / VR camera rig
         [SerializeField] private Transform xrRightControllerTransform;
         [SerializeField] private DogStatusController dogStatus;
+        [SerializeField] private DogAudioController dogAudioController;
         [SerializeField] private Animator dogAnimator;
 
         [Header("Hand Settings")]
@@ -90,6 +91,11 @@ namespace FetchVR.Dog
 
         private void Awake()
         {
+            if (dogAudioController == null && fetchAgent != null)
+            {
+                dogAudioController = fetchAgent.GetComponent<DogAudioController>();
+            }
+
             EnsureXrActionsCreated();
             TryAutoAssignRightControllerTransform();
             m_IsActiveForCurrentMode = IsGameMode();
@@ -303,6 +309,7 @@ namespace FetchVR.Dog
             }
 
             fetchAgent.StartFetch();
+            dogAudioController?.PlayFetchBark();
             SetDogRun(true);
 
             currentState = GameState.DogFetching;

@@ -7,6 +7,7 @@ namespace FetchVR.Dog
     {
         [Header("Dog Status")]
         [SerializeField] private DogStatusController dogStatus;
+        [SerializeField] private DogAudioController dogAudioController;
         [SerializeField] private int trainingGainPerSuccess = 1;
 
         [Header("Ball")]
@@ -34,6 +35,14 @@ namespace FetchVR.Dog
         private bool ballThrown;
 
         public bool IsTrainingInProgress => ballPickedUp || ballThrown;
+
+        private void Awake()
+        {
+            if (dogAudioController == null && fetchAgent != null)
+            {
+                dogAudioController = fetchAgent.GetComponent<DogAudioController>();
+            }
+        }
 
         private void OnEnable()
         {
@@ -92,6 +101,7 @@ namespace FetchVR.Dog
             if (fetchAgent != null)
             {
                 fetchAgent.StartFetch();
+                dogAudioController?.PlayFetchBark();
             }
         }
 

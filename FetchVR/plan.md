@@ -208,3 +208,101 @@
 - No scene objects or bindings were auto-created by script changes.
 - Tutorial and settings buttons still need to be wired in the Inspector to `TitleScreen.ShowTutorial()` and `TitleScreen.ShowSetting()`.
 - Panel close buttons should be wired to `ToturialScreen.Close()` and `SettingScreen.Close()`.
+
+## 2026-04-16 Update
+
+### 音频系统新增
+
+- 新增 `Assets/Scripts/Dog/DogAudioController.cs`，用于统一管理狗的音效播放。
+- `DogAudioController` 将狗的音频分成两类：
+- 循环声道：用于 `idle` 状态下的呼吸声。
+- 单次声道：用于 `fetch` 开始时的狗叫、`pet` 时的撒娇声、`feed` 时的吃饭声。
+- `fetch` 的狗叫支持从 `fetchBarkClips` 中随机选择，每次触发时随机播放一个可用音频。
+- `idle` 呼吸声会在狗进入跑动或播放一次性音效时自动暂停，待单次音效播放完后再恢复。
+
+### 已接入的触发点
+
+- 在 `Assets/Scripts/Dog/FetchGameController.cs` 中：
+- `CommandDogFetch()` 里已接入 `dogAudioController.PlayFetchBark()`。
+- 这对应 `BasicScene` 游戏模式下，玩家命令狗开始去捡球时播放狗叫。
+- 在 `Assets/Scripts/Dog/DogTrainingSession.cs` 中：
+- `NotifyBallThrown()` 里已接入 `dogAudioController.PlayFetchBark()`。
+- 这对应训练/投球流程里，狗开始执行 fetch 时播放狗叫。
+- 在 `Assets/Scripts/Dog/DogPetInteraction.cs` 中：
+- `PerformPet()` 成功执行后会调用 `dogAudioController.PlayPetSound()`。
+- 这对应玩家抚摸成功后播放撒娇声。
+- 在 `Assets/Scripts/Dog/DogFeedAction.cs` 中：
+- `FeedDog()` 执行后会调用 `dogAudioController.PlayFeedSound()`。
+- 这对应玩家点击喂食后播放吃饭声。
+
+### BGM 系统新增
+
+- 新增 `Assets/Scripts/UI/BgmController.cs`，用于管理主菜单和游戏场景的背景音乐。
+- `BgmController` 使用 `DontDestroyOnLoad(gameObject)` 常驻，不会因为切场景而被销毁。
+- 当前默认按场景名切换 BGM：
+- `TitleScreen` 播放主菜单 BGM。
+- `BasicScene` 播放游戏场景 BGM。
+- 如果进入未单独配置的场景，则优先回退到游戏场景 BGM；若没有则回退到主菜单 BGM。
+- `BgmController` 会在 `SceneManager.sceneLoaded` 时自动检查当前场景并切换正确的背景音乐。
+
+### SettingScreen 功能扩展
+
+- 已扩展 `Assets/Scripts/UI/SettingScreen.cs`，不再只是显示/隐藏设置面板。
+- 目前 `SettingScreen` 已新增以下接口：
+- `SetMasterVolume(float)`：设置全局总音量，直接作用于 `AudioListener.volume`。
+- `GetMasterVolume()`：读取当前保存的总音量。
+- `SetBgmVolume(float)`：设置背景音乐音量，只影响 `BgmController`。
+- `GetBgmVolume()`：读取当前保存的 BGM 音量。
+- 音量设置已使用 `PlayerPrefs` 保存：
+- 总音量键：`Audio.MasterVolume`
+- BGM 音量键：`Audio.BgmVolume`
+- 下次进入游戏时会自动读取上次保存的音量。
+
+### 当前资源情况说明
+
+- 当前仓库内已经能确认存在 3 个狗叫音频，位于 `Assets/Audio/SE/`：
+- `dragon-studio-barking-dog-cute-sound-463192.mp3`
+- `dragon-studio-dog-bark-03-472362.mp3`
+- `dragon-studio-dog-bark-04-472385.mp3`
+- 当前代码已支持随机狗叫，可以直接把以上音频拖入 `DogAudioController.fetchBarkClips`。
+- 当前仓库内尚未确认到“呼吸声”“撒娇声”“吃饭声”的现成素材，因此代码先保留了 Inspector 挂载入口，后续导入素材后可直接接入，无需再次改脚本。
+
+### 之后如何使用今天写的代码
+
+### 1. 狗音效的挂载方式
+
+- 在狗对象上挂载 `DogAudioController`。
+- 如果狗对象上没有现成的 `AudioSource`，脚本会在运行时自动补一个循环声道和一个单次声道。
+- 在 Inspector 中配置：
+- `idleBreathingClip`：拖入狗 idle 时要循环播放的呼吸声。
+- `fetchBarkClips`：拖入多个狗叫声，脚本会随机播放。
+- `petClips`：拖入撒娇声，可以一个或多个。
+- `feedClips`：拖入吃饭声，可以一个或多个。
+- 如果 `DogFeedAction`、`DogPetInteraction`、`FetchGameController`、`DogTrainingSession` 没有手动指定 `DogAudioController`，脚本会优先尝试从同对象或 `fetchAgent` 对象自动寻找。
+
+### 2. BGM 的挂载方式
+
+- 在 `TitleScreen` 场景中新建一个对象，例如 `BGM Manager`。
+- 给这个对象挂载 `BgmController`。
+- 在 `BgmController` Inspector 中配置：
+- `titleBgm`：拖入主菜单 BGM。
+- `gameplayBgm`：拖入游戏场景 BGM。
+- `titleSceneName` 默认是 `TitleScreen`。
+- `gameplaySceneName` 默认是 `BasicScene`。
+- 如果以后你修改了场景名，需要同步改这里的两个字符串。
+
+### 3. 设置界面音量滑条的绑定方式
+
+- 在设置界面的总音量 Slider 上绑定 `SettingScreen.SetMasterVolume(float)`。
+- 在设置界面的 BGM 音量 Slider 上绑定 `SettingScreen.SetBgmVolume(float)`。
+- 建议两个 Slider 的取值范围都设为 `0 ~ 1`。
+- 如果 UI 需要在打开设置面板时显示当前保存的值：
+- 总音量 Slider 应读取 `SettingScreen.GetMasterVolume()`。
+- BGM 音量 Slider 应读取 `SettingScreen.GetBgmVolume()`。
+- 如果以后还要区分“音效音量”和“BGM 音量”，可以继续沿用当前结构，在 `SettingScreen` 和对应控制器里新增 `SE Volume` 的读写接口。
+
+### 4. 后续扩展建议
+
+- 如果后续要让按钮点击音效、UI 悬停音效、环境音效也进入统一管理，建议再拆一个专门的 `SfxController`。
+- 如果后续需要在场景切换时淡入淡出 BGM，建议直接在 `BgmController` 里加入 `Coroutine` 做音量渐变，而不是把切歌逻辑分散到 `TitleScreen` 或其他 UI 脚本。
+- 如果后续要让设置面板打开时自动刷新 Slider 的当前值，可以继续扩展 `SettingScreen`，在 `Show()` 时同步 UI 控件状态。

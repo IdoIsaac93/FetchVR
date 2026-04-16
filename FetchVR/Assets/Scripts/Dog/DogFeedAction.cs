@@ -6,8 +6,17 @@ namespace FetchVR.Dog
     public class DogFeedAction : MonoBehaviour
     {
         [SerializeField] private DogStatusController dogStatus;
+        [SerializeField] private DogAudioController dogAudioController;
         [SerializeField] private int satietyGainPerFeed = 1;
         [SerializeField] private UnityEvent onFeedPerformed = new UnityEvent();
+
+        private void Awake()
+        {
+            if (dogAudioController == null)
+            {
+                dogAudioController = GetComponent<DogAudioController>();
+            }
+        }
 
         public void FeedDog()
         {
@@ -18,6 +27,7 @@ namespace FetchVR.Dog
             }
 
             dogStatus.AddSatiety(satietyGainPerFeed);
+            dogAudioController?.PlayFeedSound();
             onFeedPerformed.Invoke();
         }
     }
