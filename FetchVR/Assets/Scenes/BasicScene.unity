@@ -931,7 +931,7 @@ GameObject:
   - component: {fileID: 643200545}
   - component: {fileID: 643200544}
   m_Layer: 5
-  m_Name: Button
+  m_Name: FeedButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -970,6 +970,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FetchVR.Dog.DogFeedAction
   dogStatus: {fileID: 1535203803454486602}
+  dogAudioController: {fileID: 0}
   satietyGainPerFeed: 1
   onFeedPerformed:
     m_PersistentCalls:
@@ -1715,6 +1716,7 @@ MonoBehaviour:
   playerTransform: {fileID: 1892056993}
   xrRightControllerTransform: {fileID: 275435632}
   dogStatus: {fileID: 1535203803454486602}
+  dogAudioController: {fileID: 0}
   dogAnimator: {fileID: 1896981939}
   handOffset: {x: 0.7, y: 1.2, z: 0.8}
   xrHandOffset: {x: 0, y: -0.02, z: 0.18}
@@ -3127,6 +3129,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FetchVR.Dog.DogPetInteraction
   dogStatus: {fileID: 1535203803454486602}
+  dogAudioController: {fileID: 0}
   petCooldownSeconds: 3
   moodGainPerPet: 1
   dogAnimator: {fileID: 1896981939}
@@ -3237,6 +3240,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FetchVR.Dog.DogTrainingSession
   dogStatus: {fileID: 1535203803454486602}
+  dogAudioController: {fileID: 0}
   trainingGainPerSuccess: 1
   trainingBall: {fileID: 0}
   minimumThrowSpeed: 1.5
@@ -4023,6 +4027,7 @@ GameObject:
   - component: {fileID: 1535203803454486602}
   - component: {fileID: 933627169109221728}
   - component: {fileID: 9155103048861633702}
+  - component: {fileID: 9155103048861633703}
   m_Layer: 0
   m_Name: Agent (1)
   m_TagString: agent
@@ -5405,6 +5410,34 @@ MonoBehaviour:
   m_StartingInteractionStrengthFilters: []
   m_AutoFindParentInteractableInHierarchy: 0
   m_ParentInteractableObject: {fileID: 0}
+--- !u!114 &9155103048861633703
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3026034289059021409}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f3a13746000d2144a81171577fc47de, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FetchVR.Dog.DogAudioController
+  dogAnimator: {fileID: 1896981939}
+  loopAudioSource: {fileID: 0}
+  oneShotAudioSource: {fileID: 0}
+  idleBreathingClip: {fileID: 8300000, guid: bf6a9a00212f6264eb73132a26aebc8f, type: 3}
+  idleBreathingVolume: 0.35
+  fetchBarkClips:
+  - {fileID: 8300000, guid: ae569cf09db68ab418dc1a631069d548, type: 3}
+  - {fileID: 8300000, guid: 40e527daa76411448be65635d76845b6, type: 3}
+  - {fileID: 8300000, guid: f5c8634f03c2c4146ba0e00c17c85149, type: 3}
+  petClips:
+  - {fileID: 8300000, guid: 734251dd71fb6584ea80cf63d3d6b891, type: 3}
+  feedClips:
+  - {fileID: 8300000, guid: e74c59f9ad961104985caf50f870bd52, type: 3}
+  oneShotVolume: 1
+  runBoolName: Run
+  oneShotBreathingResumeDelay: 0.25
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

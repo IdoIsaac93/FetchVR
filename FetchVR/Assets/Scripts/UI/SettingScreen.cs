@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.UI;
+using FetchVR.Dog;
 
 public class SettingScreen : MonoBehaviour
 {
@@ -7,6 +9,9 @@ public class SettingScreen : MonoBehaviour
 
     [SerializeField] private GameObject screenRoot;
     [SerializeField] private BgmController bgmController;
+    [SerializeField] private Slider masterVolumeSlider;
+    [SerializeField] private Slider bgmVolumeSlider;
+    [SerializeField] private Slider sfxVolumeSlider;
 
     private void Awake()
     {
@@ -21,6 +26,12 @@ public class SettingScreen : MonoBehaviour
         }
 
         ApplySavedMasterVolume();
+        RefreshUi();
+    }
+
+    private void OnEnable()
+    {
+        RefreshUi();
     }
 
     public void Show()
@@ -29,6 +40,8 @@ public class SettingScreen : MonoBehaviour
         {
             screenRoot.SetActive(true);
         }
+
+        RefreshUi();
     }
 
     public void Hide()
@@ -82,8 +95,47 @@ public class SettingScreen : MonoBehaviour
             : BgmController.DefaultBgmVolume;
     }
 
+    public void SetSfxVolume(float normalizedVolume)
+    {
+        float clampedVolume = Mathf.Clamp01(normalizedVolume);
+        PlayerPrefs.SetFloat(DogAudioController.SfxVolumePrefKey, clampedVolume);
+        PlayerPrefs.Save();
+
+        DogAudioController[] dogAudioControllers = FindObjectsByType<DogAudioController>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < dogAudioControllers.Length; i++)
+        {
+            if (dogAudioControllers[i] != null)
+            {
+                dogAudioControllers[i].SetSfxVolume(clampedVolume);
+            }
+        }
+    }
+
+    public float GetSfxVolume()
+    {
+        return PlayerPrefs.GetFloat(DogAudioController.SfxVolumePrefKey, DogAudioController.DefaultSfxVolume);
+    }
+
     private void ApplySavedMasterVolume()
     {
         AudioListener.volume = GetMasterVolume();
+    }
+
+    public void RefreshUi()
+    {
+        if (masterVolumeSlider != null)
+        {
+            masterVolumeSlider.SetValueWithoutNotify(GetMasterVolume());
+        }
+
+        if (bgmVolumeSlider != null)
+        {
+            bgmVolumeSlider.SetValueWithoutNotify(GetBgmVolume());
+        }
+
+        if (sfxVolumeSlider != null)
+        {
+            sfxVolumeSlider.SetValueWithoutNotify(GetSfxVolume());
+        }
     }
 }

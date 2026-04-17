@@ -4,6 +4,9 @@ namespace FetchVR.Dog
 {
     public class DogAudioController : MonoBehaviour
     {
+        public const string SfxVolumePrefKey = "Audio.SfxVolume";
+        public const float DefaultSfxVolume = 1f;
+
         [Header("References")]
         [SerializeField] private Animator dogAnimator;
         [SerializeField] private AudioSource loopAudioSource;
@@ -49,6 +52,8 @@ namespace FetchVR.Dog
                 oneShotAudioSource.loop = false;
                 oneShotAudioSource.spatialBlend = 1f;
             }
+
+            ApplySavedSfxVolume();
         }
 
         private void Update()
@@ -69,6 +74,19 @@ namespace FetchVR.Dog
         public void PlayFeedSound()
         {
             PlayRandomOneShot(feedClips);
+        }
+
+        public void SetSfxVolume(float normalizedVolume)
+        {
+            float clampedVolume = Mathf.Clamp01(normalizedVolume);
+            PlayerPrefs.SetFloat(SfxVolumePrefKey, clampedVolume);
+            PlayerPrefs.Save();
+            ApplySavedSfxVolume();
+        }
+
+        public float GetSfxVolume()
+        {
+            return PlayerPrefs.GetFloat(SfxVolumePrefKey, DefaultSfxVolume);
         }
 
         public void SuppressIdleBreathing(float duration)
@@ -94,9 +112,10 @@ namespace FetchVR.Dog
             if (loopAudioSource.clip != idleBreathingClip)
             {
                 loopAudioSource.clip = idleBreathingClip;
-                loopAudioSource.volume = idleBreathingVolume;
                 loopAudioSource.loop = true;
             }
+
+            loopAudioSource.volume = idleBreathingVolume * GetSfxVolume();
 
             if (!loopAudioSource.isPlaying)
             {
@@ -134,7 +153,22 @@ namespace FetchVR.Dog
 
             float resumeDelay = clip.length + oneShotBreathingResumeDelay;
             SuppressIdleBreathing(resumeDelay);
-            oneShotAudioSource.PlayOneShot(clip, oneShotVolume);
+            oneShotAudioSource.PlayOneShot(clip, oneShotVolume * GetSfxVolume());
+        }
+
+        private void ApplySavedSfxVolume()
+        {
+            float sfxVolume = GetSfxVolume();
+
+            if (loopAudioSource != null && loopAudioSource.clip == idleBreathingClip)
+            {
+                loopAudioSource.volume = idleBreathingVolume * sfxVolume;
+            }
+
+            if (oneShotAudioSource != null)
+            {
+                oneShotAudioSource.volume = sfxVolume;
+            }
         }
 
         private static AudioClip GetRandomClip(AudioClip[] clips)
